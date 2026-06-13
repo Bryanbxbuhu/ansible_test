@@ -1,0 +1,42 @@
+---
+- name: Run the Ansible ephemeral demonstration
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    demo_script: "{{ playbook_dir }}/../demo.py"
+
+  tasks:
+    - name: Display execution information
+      ansible.builtin.debug:
+        msg:
+          - "Hostname: {{ ansible_hostname }}"
+          - "Operating system: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Python interpreter: {{ ansible_python.executable }}"
+          - "Repository directory: {{ playbook_dir }}/.."
+
+    - name: Check that the demonstration script exists
+      ansible.builtin.stat:
+        path: "{{ demo_script }}"
+      register: demo_script_status
+
+    - name: Validate the demonstration script
+      ansible.builtin.assert:
+        that:
+          - demo_script_status.stat.exists
+          - demo_script_status.stat.isreg
+        fail_msg: "The demonstration Python script was not found."
+        success_msg: "The demonstration Python script was found."
+
+    - name: Execute the demonstration Python script
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ demo_script }}"
+      register: demo_execution
+      changed_when: false
+
+    - name: Display the demonstration output
+      ansible.builtin.debug:
+        var: demo_execution.stdout_lines
